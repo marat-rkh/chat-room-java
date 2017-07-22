@@ -2,6 +2,8 @@ package chatroom.client;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -12,19 +14,17 @@ public class Client {
     public void run(String hostName) {
         try(
                 Socket socket = new Socket(hostName, 8888);
-                BufferedReader serverReader = new BufferedReader(
-                    new InputStreamReader(socket.getInputStream()));
-                BufferedWriter serverWriter = new BufferedWriter(
-                    new OutputStreamWriter(socket.getOutputStream()));
+                Scanner serverReader = new Scanner(socket.getInputStream());
+                PrintWriter serverWriter = new PrintWriter(socket.getOutputStream());
                 ReadTask readTask = new ReadTask(serverReader);
                 BufferedReader userInputReader = new BufferedReader(
                     new InputStreamReader(System.in));
         ) {
-            System.out.println("Welcome to ChatRoom client!");
-            System.out.println("Connection to server is successful");
+            System.out.println("> Welcome to ChatRoom client!");
+            System.out.println("> Connection to server is successful");
             executor.execute(readTask);
             String userName = getUserName(userInputReader);
-            System.out.println("Say hello!");
+            System.out.println("> Say hello! (to exit type ':q')");
             userInputLoop(userName, userInputReader, serverWriter);
         } catch (IOException e) {
             System.err.println("Failed to run client");
@@ -34,19 +34,23 @@ public class Client {
     }
 
     private String getUserName(BufferedReader userInputReader) throws IOException {
-        System.out.println("Pick a nickname:");
+        System.out.println("> Pick a nickname:");
         return userInputReader.readLine();
     }
 
     private void userInputLoop(String userName,
                                BufferedReader userInputReader,
-                               BufferedWriter serverWriter) throws IOException {
+                               PrintWriter serverWriter) throws IOException {
         String message;
         while((message = userInputReader.readLine()) != null) {
             if(message.equals(":q")) {
                 return;
             }
-            serverWriter.write(userName + ": " + message);
+            serverWriter.println(userName + ": " + message);
+            if(serverWriter.checkError()) {
+                System.err.println("> You have been disconnected from the server");
+                return;
+            }
         }
     }
 
@@ -66,10 +70,10 @@ public class Client {
     }
 
     private static class ReadTask implements Runnable, AutoCloseable {
-        private final BufferedReader reader;
+        private final Scanner reader;
         private volatile boolean isStopped = false;
 
-        private ReadTask(BufferedReader reader) {
+        private ReadTask(Scanner reader) {
             this.reader = reader;
         }
 
@@ -77,11 +81,11 @@ public class Client {
         public void run() {
             String message;
             try {
-                while(!isStopped && (message = reader.readLine()) != null) {
+                while(!isStopped && (message = reader.nextLine()) != null) {
                     System.out.println(message);
                 }
-            } catch (IOException e) {
-                System.err.println("Failed to read incoming messages");
+            } catch (NoSuchElementException e) {
+                // just exit
             }
         }
 
