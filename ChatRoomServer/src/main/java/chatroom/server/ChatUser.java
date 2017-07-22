@@ -12,4 +12,6 @@ public class ChatUser {
     public ChatUser(Socket socket) {
         this.socket = socket;
     }
+
+    public String getIP() { return socket.getInetAddress().toString(); }
 }

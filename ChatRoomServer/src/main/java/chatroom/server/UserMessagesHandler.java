@@ -3,6 +3,8 @@ package chatroom.server;
 import java.io.*;
 import java.net.Socket;
 import java.util.Collections;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -68,12 +70,12 @@ public class UserMessagesHandler implements ConnectionsHandler {
 
         @Override
         public void run() {
-            try(BufferedReader in = new BufferedReader(new InputStreamReader(userIS))) {
+            try(Scanner in = new Scanner(userIS)) {
                 String input;
-                while ((input = in.readLine()) != null) {
+                while ((input = in.nextLine()) != null) {
                     messagesBroadcaster.broadcast(input);
                 }
-            } catch(IOException e) {
+            } catch(NoSuchElementException e) {
                 messagesBroadcaster.unregister(user);
             }
         }

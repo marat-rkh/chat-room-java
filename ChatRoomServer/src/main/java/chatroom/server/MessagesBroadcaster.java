@@ -11,12 +11,14 @@ public class MessagesBroadcaster {
 
     public void register(ChatUser user, OutputStream userOS) {
         users.put(user, new AsyncMessageSender(userOS));
+        System.out.println("Registered user: " + user.getIP());
     }
 
     public void unregister(ChatUser user) {
         AsyncMessageSender sender = users.remove(user);
         if(sender != null) {
             sender.shutdown();
+            System.out.println("Unregistered user: " + user.getIP());
         }
     }
 
